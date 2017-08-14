@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import re
 import urllib
 from urllib import quote
 
@@ -27,17 +28,18 @@ class GrooveSpider(scrapy.Spider):
             headers=self.__headers,
             meta={
                 'dont_merge_cookies': True,
-                "release_feedback": feedback,
+                'proxy': 'http://167.114.82.169:80', 
                 },
             )
 
     def parse(self, response):
 
-        album_name_list  = response.xpath('//a[@data-selector="details-link" and @itemprop="url" and @title!=""]/@title').extract()
-        album_url_list   = response.xpath('//a[@data-selector="details-link" and @itemprop="url" and @title!=""]/@href').extract()
-        artist_name_list = response.xpath('//a[@data-selector="subdetails-link" and @data-bi-name!="" and @class="x-hidden-focus" and ../@class="media-subheader"]/@data-bi-name').extract()
+        album_name_list  = response.xpath('//a[starts-with(@href, "/en-us/store/music/album/") and @data-selector="details-link" and @itemprop="url" and @title!=""]/@title').extract()
+        album_url_list   = response.xpath('//a[starts-with(@href, "/en-us/store/music/album/") and @data-selector="details-link" and @itemprop="url" and @title!=""]/@href').extract()
+        artist_name_list = response.xpath('//a[starts-with(@href, "/en-us/store/music/artist/") and @data-selector="subdetails-link" and @data-bi-name!="" and ../@class="media-subheader"]/@data-bi-name').extract()
 
         albums = zip(album_name_list, album_url_list, artist_name_list)
+        print albums
 
         for item in albums:
             if self.format_compare_key(utf8(item[0])) == self.format_compare_key(utf8('loose change')):
@@ -46,3 +48,8 @@ class GrooveSpider(scrapy.Spider):
                 if len(local_artist_names.intersection(extracted_artist_names)) > 0:
                     print urllib.basejoin(self.__base_url, item[1])
                     break
+
+    def format_compare_key(self, key):
+       alphabet = re.compile('[^a-zA-Z]')
+       key = alphabet.sub("", key.lower())
+       return key
